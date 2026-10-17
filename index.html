@@ -1,0 +1,598 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Eco Sense</title>
+<meta name="theme-color" content="#0f2b46">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>html{-webkit-text-size-adjust:100%}body{margin:0;min-height:100vh}[hidden]{display:none!important}</style>
+</head><body>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: sticky app bar, tabbed workspace. Dashboard = summary strip, four resource cards, then controls + AI tips. */
+:root{
+  --bg:#EDF2F0; --surface:#FFFFFF; --surface2:#F4F8F6; --line:#D5DFDB;
+  --ink:#0E211C; --muted:#566B64; --accent:#0B7A5C; --accent-ink:#FFFFFF;
+  --c-water:#1F78D1; --c-elec:#C98A00; --c-fuel:#D4532B; --c-waste:#7B63C6;
+  --ok:#1C8A55; --watch:#A86A00; --alert:#C8372D;
+  --lcd-bg:#9DB87A; --lcd-ink:#1D2A12;
+  --font-display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
+  --font-body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+  --font-data:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0B1714; --surface:#12231F; --surface2:#172C27; --line:#25403A;
+  --ink:#E3EFEB; --muted:#92ABA3; --accent:#3FC79D; --accent-ink:#06211A;
+  --c-water:#5AA7F0; --c-elec:#E8B33C; --c-fuel:#F07F57; --c-waste:#A592E8;
+  --ok:#4CC585; --watch:#E6B04A; --alert:#FF7466; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0B1714; --surface:#12231F; --surface2:#172C27; --line:#25403A;
+  --ink:#E3EFEB; --muted:#92ABA3; --accent:#3FC79D; --accent-ink:#06211A;
+  --c-water:#5AA7F0; --c-elec:#E8B33C; --c-fuel:#F07F57; --c-waste:#A592E8;
+  --ok:#4CC585; --watch:#E6B04A; --alert:#FF7466; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:14px/1.5 var(--font-body);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 40px}
+.wrap{max-width:1100px;margin:0 auto}
+h1,h2,h3{font-family:var(--font-display);margin:0;text-wrap:balance;letter-spacing:-.01em}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.mono{font-family:var(--font-data);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:500}
+
+/* app bar */
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:14px 0;border-bottom:1px solid var(--line)}
+.bar-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:space-between}
+.brand{display:flex;flex-direction:column;min-width:0}
+.brand h1{font-size:22px;line-height:1.1}
+.brand span{font-size:12px;color:var(--muted)}
+.chips{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 10px;font-size:12px;white-space:nowrap}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--ok)}
+.dot.off{background:var(--alert)}
+.iconbtn{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 12px;font-size:12px}
+.tabs{display:flex;gap:2px;overflow-x:auto;margin-top:12px;scrollbar-width:none;-ms-overflow-style:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{border:0;background:none;padding:10px 14px;font-weight:500;color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.badge{display:inline-block;min-width:18px;padding:0 5px;border-radius:9px;background:var(--alert);color:#fff;font-size:11px;text-align:center;margin-left:4px}
+
+main{padding-top:20px;display:flex;flex-direction:column;gap:20px}
+.banner{border:1px solid color-mix(in srgb,var(--watch) 50%,var(--line));background:color-mix(in srgb,var(--watch) 12%,var(--surface));border-radius:8px;padding:10px 14px}
+
+/* summary */
+.summary{display:flex;flex-wrap:wrap;gap:12px 32px;align-items:baseline;justify-content:space-between}
+.summary h2{font-size:20px}
+.stats{display:flex;gap:28px;flex-wrap:wrap}
+.stat b{display:block;font-family:var(--font-data);font-size:18px;font-weight:500}
+
+/* resource cards */
+.grid4{display:grid;grid-template-columns:repeat(auto-fit,minmax(235px,1fr));gap:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.card-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.rname{display:flex;align-items:center;gap:8px;font-weight:600}
+.swatch{width:10px;height:10px;border-radius:2px}
+.big{font-family:var(--font-data);font-size:34px;font-weight:500;line-height:1.1}
+.big small{font-size:16px;color:var(--muted);margin-left:2px}
+.sub{font-size:12.5px;color:var(--muted)}
+.sensor{font-family:var(--font-data);font-size:11px;color:var(--muted)}
+.pill{font-size:11px;font-weight:600;border-radius:999px;padding:2px 9px;background:color-mix(in srgb,var(--ok) 15%,transparent);color:var(--ok)}
+.pill.watch{background:color-mix(in srgb,var(--watch) 16%,transparent);color:var(--watch)}
+.pill.alert{background:color-mix(in srgb,var(--alert) 16%,transparent);color:var(--alert)}
+svg.spark{width:100%;height:44px;display:block}
+
+.cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:14px}
+@media(max-width:760px){.cols{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.panel h3{font-size:16px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.btn{border:1px solid var(--line);background:var(--surface2);border-radius:8px;padding:7px 12px;font-weight:500}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:0;background:var(--surface2);padding:6px 12px}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.ctl{display:flex;flex-direction:column;gap:8px;padding-top:12px;border-top:1px solid var(--line)}
+.ctl:first-of-type{border-top:0;padding-top:0}
+.tips{display:flex;flex-direction:column;gap:0;margin:0;padding:0;list-style:none}
+.tips li{display:flex;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.tips li:first-child{border-top:0;padding-top:0}
+.tips .swatch{margin-top:6px;flex:none}
+.tips b{display:block}
+.save{margin-left:auto;font-family:var(--font-data);font-size:12px;white-space:nowrap;color:var(--ok)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;margin:0}
+.kv dt{color:var(--muted)} .kv dd{margin:0;text-align:right}
+
+/* prediction */
+.chartbox{width:100%}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:12px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.runway{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+
+/* alerts */
+.alist{display:flex;flex-direction:column;gap:8px}
+.alert-item{display:grid;grid-template-columns:4px 1fr auto;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 14px 12px 0;overflow:hidden}
+.alert-item .stripe{background:var(--watch)}
+.alert-item.crit .stripe{background:var(--alert)}
+.alert-item.info .stripe{background:var(--accent)}
+.alert-item.closed{opacity:.6}
+.alert-item .meta{font-size:12px;color:var(--muted)}
+.empty{padding:28px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:8px}
+
+/* reports */
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:560px}
+th,td{padding:9px 10px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:500}
+.cell{display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+.cell i{display:block;height:3px;border-radius:2px;min-width:2px}
+tr.today td{background:color-mix(in srgb,var(--accent) 8%,transparent)}
+
+/* device */
+.lcd{background:var(--lcd-bg);color:var(--lcd-ink);font-family:var(--font-data);font-size:clamp(15px,4.6vw,22px);letter-spacing:.06em;line-height:1.35;padding:14px 16px;border-radius:6px;border:6px solid #2d3a2e;white-space:pre;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(0,0,0,.25)}
+.leds{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.led{display:flex;align-items:center;gap:6px;font-size:12px}
+.led i{width:14px;height:14px;border-radius:50%;background:var(--line);border:1px solid var(--muted)}
+.led.on.g i{background:var(--ok);border-color:var(--ok);box-shadow:0 0 8px var(--ok)}
+.led.on.a i{background:var(--watch);border-color:var(--watch);box-shadow:0 0 8px var(--watch)}
+.led.on.r i{background:var(--alert);border-color:var(--alert);box-shadow:0 0 8px var(--alert)}
+.buzz.on i{animation:blink .5s steps(2) infinite}
+@keyframes blink{50%{opacity:.25}}
+.form{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.form label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
+.form input{border:1px solid var(--line);background:var(--surface2);border-radius:8px;padding:7px 10px;color:var(--ink);width:100%}
+.simbtns{display:flex;gap:8px;flex-wrap:wrap}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:8px;font-size:13px;z-index:20;max-width:90vw}
+.alertbar{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-top:16px;border:1px solid var(--alert);background:color-mix(in srgb,var(--alert) 12%,var(--surface));border-radius:8px;padding:10px 14px}
+.alertbar b{min-width:0}
+.lock{position:fixed;inset:0;z-index:30;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px}
+.lock[hidden]{display:none}
+.lockcard{max-width:380px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:28px;display:flex;flex-direction:column;gap:10px;text-align:left}
+.lockcard h2{font-size:22px}
+
+/* system / about / solar */
+.flow{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;counter-reset:st}
+.flow li{counter-increment:st;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.flow li::before{content:counter(st);font-family:var(--font-data);font-size:12px;color:var(--accent-ink);background:var(--accent);width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.flow b{font-family:var(--font-display);font-size:15px}
+.flow span{font-size:12.5px;color:var(--muted)}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+.plain{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
+.team{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.person{display:flex;gap:12px;align-items:center;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:12px;min-width:0}
+.avatar{flex:none;width:40px;height:40px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-family:var(--font-display);font-weight:700;display:flex;align-items:center;justify-content:center}
+.person b{display:block}
+details.qa{border-top:1px solid var(--line);padding:10px 0}
+details.qa:first-of-type{border-top:0}
+details.qa summary{cursor:pointer;font-weight:600;display:flex;gap:10px;list-style:none}
+details.qa summary::-webkit-details-marker{display:none}
+details.qa summary::before{content:"+";font-family:var(--font-data);color:var(--accent);width:14px;flex:none}
+details.qa[open] summary::before{content:"\2212"}
+details.qa p{margin:8px 0 0 24px;color:var(--muted)}
+.range{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.range input[type=range]{flex:1 1 200px;accent-color:var(--accent);min-width:0}
+.sw{display:inline-block;width:14px;height:3px;margin-right:6px;vertical-align:3px}
+.fl{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--muted)}
+.fl input,.fl select,.fl textarea{border:1px solid var(--line);background:var(--surface2);color:var(--ink);border-radius:8px;padding:8px 10px;font:inherit;width:100%}
+.fl textarea{resize:vertical}
+.stars{display:flex;gap:4px}
+.stars button{border:0;background:none;padding:0 2px;font-size:32px;line-height:1.1;color:var(--line);cursor:pointer}
+.stars button.on{color:var(--c-elec)}
+.stars button:hover{color:var(--c-elec)}
+@media(prefers-reduced-motion:reduce){.buzz.on i{animation:none}}
+</style>
+
+<div class="bar">
+  <div class="wrap">
+    <div class="bar-top">
+      <div class="brand" style="flex-direction:row;align-items:center;gap:12px"><img src="icon-192.png" alt="" width="40" height="40" style="border-radius:50%;flex:none"><div style="display:flex;flex-direction:column;min-width:0"><h1>Eco Sense</h1><span>Monitor smarter. Waste less. Live greener.</span></div></div>
+      <div class="chips">
+        <span class="chip" id="ownerChip" hidden>Unlocked</span>
+        <span class="chip" title="No hardware is connected. Every reading on this page is simulated.">Simulated sensors</span>
+        <span class="chip" id="net"><i class="dot"></i><span id="netTxt">Device online</span></span>
+        <button class="iconbtn" id="themeBtn" type="button">Theme</button>
+      </div>
+    </div>
+    <div class="tabs" role="tablist" id="tabs"></div>
+  </div>
+</div>
+<div class="wrap" id="alertBar"></div>
+<div class="wrap"><main id="view"></main></div>
+<div class="lock" id="lock"><div class="lockcard"><div class="label">Eco Sense</div><h2 id="lockTitle">Checking access</h2><span class="muted" id="lockMsg">Confirming that you are the owner of this dashboard.</span></div></div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(function(){
+"use strict";
+/* ---------- constants ---------- */
+var TANK=500, FUEL_CAP=20, BIN_CM=40, TICK_MIN=6, VOLT=230, TARIFF=7, FUEL_PRICE=95, CO2=0.82;
+var PW=[5,3,3,3,5,20,60,80,50,30,25,30,40,30,25,25,30,45,70,80,60,40,20,10];            // water L per hour
+var PE=[.3,.3,.3,.3,.3,.5,1,1.2,.8,.6,.6,.7,.9,.8,.7,.7,.8,1.1,1.6,1.8,1.5,1,.6,.4];       // electricity kW
+var PF=[0,0,0,0,0,0,.05,.08,.05,0,0,0,.05,0,0,0,.05,.12,.25,.28,.2,.1,.04,0];             // fuel L per hour
+var PS=[.2,.1,.1,.1,.1,.3,.8,1,.6,.4,.4,.5,1.2,.6,.4,.4,.5,.9,1.4,1.2,.8,.5,.3,.2];        // bin fill % per hour
+var sum=function(a){return a.reduce(function(x,y){return x+y},0)};
+var clamp=function(v,a,b){return Math.max(a,Math.min(b,v))};
+var $=function(s){return document.querySelector(s)};
+var f0=function(v){return v.toFixed(0)},f1=function(v){return v.toFixed(1)},f2=function(v){return v.toFixed(2)};
+function store(k,v){try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){return null}}
+function rng(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;var t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+
+var th={waterLow:20,ampsMax:10,fuelLow:15,wasteHigh:85,tempHigh:35};
+try{var saved=JSON.parse(store("es-th")||"null");if(saved)Object.keys(th).forEach(function(k){if(typeof saved[k]==="number")th[k]=saved[k]})}catch(e){}
+
+/* ---------- device state (what the device holds) ---------- */
+var R=rng(11), now0=new Date(), H0=now0.getHours();
+function seedHourly(p,scale){var a=[];for(var i=0;i<24;i++){a[i]=i<H0?p[i]*(0.88+R()*0.24):(i===H0?p[i]*now0.getMinutes()/60:0)}return a}
+var dev={
+  h:H0, wifi:true, queued:0,
+  waterL:TANK*0.62, fuelL:11.4, waste:58, temp:27, hum:55,
+  pump:false, pumpAuto:true, valve:true, autoValve:true,
+  leakLeft:0, spikeLeft:0, leakTicks:0,
+  amps:2, kw:.4, outflow:0,
+  live:{level:[],amps:[],fuel:[],waste:[],temp:[],hum:[],flow:[]},
+  hourly:{water:seedHourly(PW),elec:seedHourly(PE),fuel:seedHourly(PF),waste:seedHourly(PS)},
+  alerts:[], active:{}, acked:{}, nextId:1
+};
+var hist=[];
+(function(){var r=rng(5);for(var d=6;d>=1;d--){var dt=new Date();dt.setDate(dt.getDate()-d);
+  hist.push({label:dt.toLocaleDateString("en-IN",{weekday:"short",day:"numeric"}),water:sum(PW)*(0.88+r()*0.26),elec:sum(PE)*(0.88+r()*0.26),fuel:sum(PF)*(0.8+r()*0.4),waste:sum(PS)*(0.85+r()*0.3)})}})();
+var cloud=JSON.parse(JSON.stringify(dev));
+var notif=store("es-notif")==="1",lastNotified=0,dismissed={};
+var tab=store("es-tab")||"dash", predRes="water", lcdScreen=0, sound=false, audioCtx=null;
+if(["dash","predict","alerts","reports","solar","device","about"].indexOf(tab)<0)tab="dash";
+var RES={water:{n:"Water",c:"var(--c-water)"},elec:{n:"Electricity",c:"var(--c-elec)"},fuel:{n:"Fuel",c:"var(--c-fuel)"},waste:{n:"Waste",c:"var(--c-waste)"}};
+
+/* ---------- alerts ---------- */
+function ts(){return new Date().toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit",hour12:false})}
+function raise(key,sev,res,msg){var d=dev;d.alerts.unshift({id:d.nextId++,key:key,sev:sev,res:res,msg:msg,t:ts(),open:true});d.active[key]=true;if(d.alerts.length>60)d.alerts.pop()}
+function cond(key,on,sev,res,msg){var d=dev;
+  if(on&&!d.active[key])raise(key,sev,res,msg);
+  if(!on&&d.active[key]){d.active[key]=false;d.alerts.forEach(function(a){if(a.key===key&&a.open){a.open=false;a.cleared=ts()}})}}
+function openAlerts(s){return s.alerts.filter(function(a){return a.open&&a.sev!=="info"})}
+
+/* ---------- simulation tick ---------- */
+function tick(){
+  var d=dev,n=new Date(),h=n.getHours();
+  if(h!==d.h){d.h=h;if(h===0){["water","elec","fuel","waste"].forEach(function(k){d.hourly[k]=new Array(24).fill(0)})}}
+  var exp=PW[h]*TICK_MIN/60, use=d.valve?exp*(0.8+Math.random()*0.4):0, leak=0;
+  if(d.leakLeft>0&&d.valve){leak=25;d.leakLeft--}else d.leakLeft=0;
+  if(d.pumpAuto){var lv=d.waterL/TANK*100;if(lv<th.waterLow)d.pump=true;else if(lv>=90)d.pump=false}
+  var fill=d.pump?400*TICK_MIN/60:0;
+  d.waterL=clamp(d.waterL-use-leak+fill,0,TANK);
+  var out=use+leak; d.outflow=out/TICK_MIN; d.hourly.water[h]+=out;
+  if(d.spikeLeft>0)d.spikeLeft--;
+  d.kw=PE[h]*(0.9+Math.random()*0.2)+(d.pump?0.37:0)+(d.spikeLeft>0?2.3:0);
+  d.amps=d.kw*1000/VOLT; d.hourly.elec[h]+=d.kw*TICK_MIN/60;
+  var burn=PF[h]*TICK_MIN/60*(0.8+Math.random()*0.4); d.fuelL=Math.max(0,d.fuelL-burn); d.hourly.fuel[h]+=burn;
+  var wf=PS[h]*TICK_MIN/60; d.waste=Math.min(100,d.waste+wf); d.hourly.waste[h]+=wf;
+  var ph=(h+n.getMinutes()/60-14)/24*2*Math.PI; d.temp=27+6*Math.cos(ph)+(Math.random()-.5)*.4; d.hum=clamp(62-14*Math.cos(ph)+(Math.random()-.5)*1.5,20,95);
+  var L=d.live,push=function(k,v){L[k].push(v);if(L[k].length>40)L[k].shift()};
+  var prevAmps=L.amps.slice(-20);
+  push("level",d.waterL/TANK*100);push("amps",d.amps);push("fuel",d.fuelL);push("waste",d.waste);push("temp",d.temp);push("hum",d.hum);push("flow",d.outflow);
+  /* checks */
+  var lvl=d.waterL/TANK*100;
+  d.leakTicks=(out>exp*3+5&&d.valve)?d.leakTicks+1:0;
+  var leakNow=d.leakTicks>=2||d.active.leak&&d.leakTicks>0;
+  if(leakNow&&!d.active.leak){
+    raise("leak","crit","water","Possible leakage. Outflow is "+f1(d.outflow)+" L/min against a normal "+f1(exp/TICK_MIN)+" L/min.");
+    if(d.autoValve){d.valve=false;d.leakLeft=0;d.leakHeld=true;raise("valve","info","water","Main valve closed automatically to stop the leak.")}
+  }
+  cond("leak",(leakNow&&d.valve)||d.leakHeld,"crit","water","");
+  cond("wlow",lvl<th.waterLow,lvl<10?"crit":"warn","water","Tank level is low at "+f0(lvl)+"%."+(d.pump?" Pump is running.":""));
+  var mean=prevAmps.length?sum(prevAmps)/prevAmps.length:d.amps, sd=Math.sqrt(sum(prevAmps.map(function(x){return(x-mean)*(x-mean)}))/(prevAmps.length||1));
+  var over=d.amps>th.ampsMax;
+  cond("over",over,"crit","elec","Overload. Current is "+f1(d.amps)+" A, above the "+th.ampsMax+" A limit.");
+  cond("anom",!over&&prevAmps.length>=12&&d.amps-mean>Math.max(3*sd,2.5),"warn","elec","Unusual power draw. "+f1(d.amps)+" A against a recent average of "+f1(mean)+" A.");
+  cond("flow",d.fuelL/FUEL_CAP*100<th.fuelLow,"warn","fuel","Fuel is low: "+f1(d.fuelL)+" L left.");
+  cond("bin",d.waste>th.wasteHigh,"warn","waste","Waste bin is "+f0(d.waste)+"% full. Schedule a pickup.");
+  cond("temp",d.temp>th.tempHigh,"warn","elec","Temperature is "+f1(d.temp)+" °C, above the "+th.tempHigh+" °C limit.");
+  /* cloud sync */
+  if(d.wifi){if(d.queued>0)toast("Back online. "+d.queued+" queued readings synced.");d.queued=0;cloud=JSON.parse(JSON.stringify(d))}
+  else d.queued++;
+  if(d.wifi){cloud.alerts.forEach(function(a){if(a.id>lastNotified&&a.sev!=="info")notify(a)});lastNotified=d.nextId-1}
+  buzzer();render();
+}
+
+/* ---------- derived values ---------- */
+function runway(start,prof,h,unitPerHour){ // hours until `start` is used up
+  if(start<=0)return 0;var left=start;for(var k=0;k<72;k++){var u=prof[(h+k)%24]*unitPerHour;left-=u;if(left<=0)return k+1-(-left/Math.max(u,1e-9))}return Infinity}
+function fmtH(x){if(!isFinite(x)||x>48)return"over 2 days";if(x>=24)return f1(x/24)+" days";return f1(x)+" h"}
+function ratioFor(s,res){var a=s.hourly[res],p=res==="water"?PW:PE,sa=0,sp=0;for(var i=0;i<s.h;i++){sa+=a[i];sp+=p[i]}return sp?clamp(sa/sp,.5,2):1}
+function forecastTotal(s,res){var a=s.hourly[res],p=res==="water"?PW:PE,r=ratioFor(s,res),t=0;for(var i=0;i<24;i++)t+=i<=s.h?a[i]:p[i]*r;return t}
+function histAvg(k){return sum(hist.map(function(x){return x[k]}))/hist.length}
+function status(s,res){var o=openAlerts(s).filter(function(a){return a.res===res});
+  if(o.some(function(a){return a.sev==="crit"}))return"alert";return o.length?"watch":"ok"}
+var PILL={ok:"Normal",watch:"Watch",alert:"Alert"};
+
+/* ---------- drawing helpers ---------- */
+function spark(vals,color,lo,hi){
+  if(vals.length<2)return'<svg class="spark"></svg>';
+  var W=200,Hh=44,n=vals.length,mn=lo!==undefined?lo:Math.min.apply(0,vals),mx=hi!==undefined?hi:Math.max.apply(0,vals);
+  if(mx-mn<1e-6){mx=mn+1}
+  var pts=vals.map(function(v,i){return[i/(n-1)*W,Hh-4-(v-mn)/(mx-mn)*(Hh-10)]});
+  var line=pts.map(function(p,i){return(i?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1)}).join("");
+  var last=pts[n-1];
+  return'<svg class="spark" viewBox="0 0 '+W+' '+Hh+'" preserveAspectRatio="none" aria-hidden="true"><path d="'+line+'L'+W+' '+Hh+'L0 '+Hh+'Z" style="fill:'+color+';opacity:.12"/><path d="'+line+'" style="fill:none;stroke:'+color+';stroke-width:2;vector-effect:non-scaling-stroke"/><circle cx="'+last[0]+'" cy="'+last[1]+'" r="3" style="fill:'+color+'"/></svg>'}
+
+function drawForecast(host){
+  var s=cloud,res=predRes,w=host.clientWidth||600,Ht=250,m={l:44,r:8,t:14,b:26},h=s.h;
+  var act=s.hourly[res],prof=res==="water"?PW:PE,r=ratioFor(s,res),col=RES[res].c,u=res==="water"?"L":"kWh";
+  var vals=[];for(var i=0;i<24;i++)vals.push(i<=h?act[i]:prof[i]*r);
+  var mx=Math.max.apply(0,vals.concat(prof))*1.1; var step=res==="water"?20:.5; mx=Math.ceil(mx/step/2)*step*2; if(mx<=0)mx=step*2;
+  var iw=w-m.l-m.r,ih=Ht-m.t-m.b,bw=iw/24,y=function(v){return m.t+ih-v/mx*ih};
+  var g="";
+  [0,.5,1].forEach(function(t){var v=mx*t;g+='<line x1="'+m.l+'" x2="'+(w-m.r)+'" y1="'+y(v)+'" y2="'+y(v)+'" style="stroke:var(--line)"/><text x="'+(m.l-6)+'" y="'+(y(v)+4)+'" text-anchor="end" style="fill:var(--muted);font:11px var(--font-data)">'+(res==="water"?f0(v):f1(v))+'</text>'});
+  for(i=0;i<24;i++){
+    var x=m.l+i*bw+bw*.16,bwid=bw*.68,v=vals[i],isF=i>h;
+    g+='<rect x="'+x+'" y="'+y(v)+'" width="'+bwid+'" height="'+Math.max(0,ih+m.t-y(v))+'" rx="2" style="fill:'+col+';opacity:'+(isF?.3:.9)+(isF?';stroke:'+col+';stroke-dasharray:3 2':'')+'"/>';
+    g+='<line x1="'+(x-1)+'" x2="'+(x+bwid+1)+'" y1="'+y(prof[i])+'" y2="'+y(prof[i])+'" style="stroke:var(--ink);stroke-width:1.5"/>';
+    if(i%3===0)g+='<text x="'+(x+bwid/2)+'" y="'+(Ht-8)+'" text-anchor="middle" style="fill:var(--muted);font:11px var(--font-data)">'+("0"+i).slice(-2)+'</text>';
+  }
+  var nx=m.l+h*bw+bw/2;
+  g+='<line x1="'+nx+'" x2="'+nx+'" y1="'+m.t+'" y2="'+(m.t+ih)+'" style="stroke:var(--accent);stroke-dasharray:2 3"/>';
+  host.innerHTML='<svg viewBox="0 0 '+w+' '+Ht+'" width="'+w+'" height="'+Ht+'" role="img" aria-label="Hourly '+RES[res].n.toLowerCase()+' use today, actual and forecast, in '+u+'">'+g+'</svg>';
+}
+
+/* ---------- views ---------- */
+function card(res,sensor,big,unit,sub,sp){var st=status(cloud,res),r=RES[res];
+  return'<section class="card" aria-label="'+r.n+'"><div class="card-head"><span class="rname"><i class="swatch" style="background:'+r.c+'"></i>'+r.n+'</span><span class="pill '+st+'">'+PILL[st]+'</span></div><div class="big">'+big+'<small>'+unit+'</small></div><div class="sub">'+sub+'</div>'+sp+'</section>'}
+
+function renderDash(){
+  var c=cloud,L=c.live,lvl=c.waterL/TANK*100,fp=c.fuelL/FUEL_CAP*100,h=c.h;
+  var kwhToday=sum(c.hourly.elec),fuelToday=sum(c.hourly.fuel);
+  var oa=openAlerts(c),crit=oa.filter(function(a){return a.sev==="crit"}).length;
+  var cost=kwhToday*TARIFF+fuelToday*FUEL_PRICE, co2=kwhToday*CO2;
+  var burnNow=PF[h];var fuelRun=runway(c.fuelL,PF,h,1);
+  var binRun=runway(100-c.waste,PS,h,1), tankRun=runway(c.waterL,PW,h,1);
+  var head=oa.length?(crit?"Needs attention now":"Watching "+oa.length+" item"+(oa.length>1?"s":"")):"All four resources are normal";
+  var banner=!dev.wifi?'<div class="banner"><b>Cloud sync paused.</b> The device is still running its LCD, LEDs, buzzer and relays, and has queued <span class="mono">'+dev.queued+'</span> readings. Figures below are from the last sync.</div>':"";
+  var tips=makeTips(c);
+  var dis=dev.wifi?"":" disabled";
+  return banner+
+  '<div class="summary"><div><div class="label">Live status</div><h2>'+head+'</h2></div><div class="stats">'+
+    '<div class="stat"><span class="label">Energy today</span><b>'+f1(kwhToday)+' kWh</b></div>'+
+    '<div class="stat"><span class="label">Est. CO₂</span><b>'+f1(co2)+' kg</b></div>'+
+    '<div class="stat"><span class="label">Est. cost</span><b>₹'+f0(cost)+'</b></div></div></div>'+
+  '<div class="grid4">'+
+    card("water","",f0(lvl),"%",f0(c.waterL)+" of "+TANK+" L · outflow "+f1(c.outflow)+" L/min · lasts "+fmtH(tankRun)+" without pump",spark(L.level,RES.water.c,0,100))+
+    card("elec","",f1(c.amps),"A",f0(c.kw*1000)+" W · "+f1(kwhToday)+" kWh today",spark(L.amps,RES.elec.c,0,Math.max(th.ampsMax,Math.max.apply(0,L.amps))))+
+    card("fuel","",f2(c.fuelL),"L",f0(fp)+"% of "+FUEL_CAP+" L tank · "+(isFinite(fuelRun)&&fuelRun<=48?"about "+fmtH(fuelRun)+" left":"over 2 days left"),spark(L.fuel,RES.fuel.c,0,FUEL_CAP))+
+    card("waste","",f1(c.waste),"%",f1(BIN_CM*(1-c.waste/100))+" cm to the waste · full in "+fmtH(binRun),spark(L.waste,RES.waste.c,0,100))+
+  '</div>'+
+  '<div class="cols"><div class="panel"><h3>Controls</h3>'+
+    '<div class="ctl"><div class="row"><b>Pump relay</b><span class="seg" role="group" aria-label="Pump mode"><button type="button" data-act="pumpAuto" aria-pressed="'+c.pumpAuto+'"'+dis+'>Auto</button><button type="button" data-act="pumpManual" aria-pressed="'+!c.pumpAuto+'"'+dis+'>Manual</button></span></div>'+
+      '<div class="row"><span class="sub">'+(c.pumpAuto?"Starts below "+th.waterLow+"%, stops at 90%.":"You decide when it runs.")+'</span><button class="btn" type="button" data-act="pumpToggle"'+(c.pumpAuto||!dev.wifi?" disabled":"")+'>Pump is '+(c.pump?"ON · turn off":"OFF · turn on")+'</button></div></div>'+
+    '<div class="ctl"><div class="row"><b>Main valve relay</b><button class="btn" type="button" data-act="valveToggle"'+dis+'>Valve is '+(c.valve?"OPEN · close":"CLOSED · open")+'</button></div>'+
+      '<label class="row sub"><span>Close the valve automatically when a leak is detected</span><input type="checkbox" id="autoValve" data-act="autoValve"'+(c.autoValve?" checked":"")+dis+'></label></div>'+
+    (dev.wifi?"":'<div class="sub">App controls are unavailable while the device is offline. Auto rules keep running on the device.</div>')+
+    '<div class="ctl"><div class="row"><b>Climate</b></div><div class="row"><span class="big" style="font-size:26px">'+f1(c.temp)+'<small>°C</small></span><span class="big" style="font-size:26px">'+f0(c.hum)+'<small>% RH</small></span></div>'+spark(L.temp,"var(--accent)")+'</div>'+
+  '</div>'+
+  '<div class="panel"><div class="row"><h3>Conservation tips</h3><span class="sub">Generated from today\'s readings</span></div><ul class="tips">'+tips.map(function(t){return'<li><i class="swatch" style="background:'+RES[t.res].c+'"></i><div><b>'+t.title+'</b><span class="sub">'+t.body+'</span></div>'+(t.save?'<span class="save">'+t.save+'</span>':'')+'</li>'}).join("")+'</ul></div></div>'
+}
+
+function makeTips(c){
+  var t=[],wf=forecastTotal(c,"water"),wa=histAvg("water"),wd=(wf/wa-1)*100;
+  t.push(wd>8?{res:"water",title:"Water use is running "+f0(wd)+"% above your weekly average",body:"Check taps, the tank float valve and the overflow pipe. Fix drips first, they run all night.",save:"≈ "+f0(wf-wa)+" L/day"}
+    :{res:"water",title:"Water use is on track",body:"Forecast "+f0(wf)+" L today against "+f0(wa)+" L on a normal day. Water plants in the evening to cut evaporation."});
+  var standby=PE[2]*7*30*TARIFF*0.5;
+  t.push({res:"elec",title:"Switch off standby loads at night",body:"The house still draws "+f0(PE[2]*1000)+" W between midnight and 5 am. Chargers, set-top boxes and routers on a timer cut about half.",save:"≈ ₹"+f0(standby)+"/month"});
+  var fr=runway(c.fuelL,PF,c.h,1);
+  t.push(fr<48?{res:"fuel",title:"Plan a refill",body:"At the usual evening burn the tank has about "+fmtH(fr)+" left. Refill before the next outage window."}
+    :{res:"fuel",title:"Fuel is steady",body:"Use the generator only for essential loads in the 6 to 10 pm window. Keep the air filter clean to burn less."});
+  t.push(c.waste>70?{res:"waste",title:"Bin is nearly full",body:"It is "+f0(c.waste)+"% full. Compost wet waste and set recyclables aside so the next pickup holds more."}
+    :{res:"waste",title:"Separate wet and dry waste",body:"Composting kitchen waste can cut the bin fill rate by about a third."});
+  if(c.hum>68&&c.temp>29)t.push({res:"elec",title:"Hot and humid right now",body:"Set the AC to 25 °C and run a fan alongside. Each degree higher saves roughly 6% of cooling energy.",save:"≈ 6% per °C"});
+  return t.slice(0,5)}
+
+function renderPredict(){
+  var c=cloud,res=predRes,isW=res==="water",u=isW?"L":"kWh",tot=forecastTotal(c,res),avg=histAvg(res),so=sum(c.hourly[res].slice(0,c.h+1)),d=(tot/avg-1)*100,fmt=isW?f0:f1;
+  var tankRun=runway(c.waterL,PW,c.h,1),fuelRun=runway(c.fuelL,PF,c.h,1),binRun=runway(100-c.waste,PS,c.h,1);
+  return'<div class="panel"><div class="row"><div><h3>Today\'s '+RES[res].n.toLowerCase()+' use, hour by hour</h3><span class="sub">Forecast = the normal pattern scaled by how today has run so far.</span></div>'+
+   '<span class="seg" role="group" aria-label="Resource"><button type="button" data-pred="water" aria-pressed="'+isW+'">Water</button><button type="button" data-pred="elec" aria-pressed="'+!isW+'">Electricity</button></span></div>'+
+   '<div class="chartbox" id="chart"></div>'+
+   '<div class="legend"><span><i style="background:'+RES[res].c+'"></i>Actual</span><span><i style="background:'+RES[res].c+';opacity:.3"></i>Forecast</span><span><i style="background:var(--ink);height:2px;vertical-align:3px"></i>Normal pattern</span><span><i style="background:var(--accent);height:2px;vertical-align:3px"></i>Now</span></div></div>'+
+   '<div class="runway"><div class="panel"><span class="label">Forecast for today</span><div class="big">'+fmt(tot)+'<small>'+u+'</small></div><span class="sub">'+fmt(so)+' '+u+' used so far · 7-day average '+fmt(avg)+' '+u+' · '+(d>=0?"+":"")+f0(d)+'%</span></div>'+
+   '<div class="panel"><span class="label">Water tank lasts</span><div class="big" style="font-size:26px">'+fmtH(tankRun)+'</div><span class="sub">If the pump stays off, at the normal draw.</span></div>'+
+   '<div class="panel"><span class="label">Fuel lasts</span><div class="big" style="font-size:26px">'+fmtH(fuelRun)+'</div><span class="sub">At the usual generator hours.</span></div>'+
+   '<div class="panel"><span class="label">Bin full in</span><div class="big" style="font-size:26px">'+fmtH(binRun)+'</div><span class="sub">At the usual fill rate.</span></div></div>'+
+   '<div class="panel"><h3>How alerts are decided</h3><dl class="kv"><dt>Leakage</dt><dd>Outflow above 3× normal plus 5 L for two readings in a row</dd><dt>Unusual power</dt><dd>Current more than 3 standard deviations over the last 20 readings</dd><dt>Overload</dt><dd>Current above your limit ('+th.ampsMax+' A)</dd><dt>Levels</dt><dd>Tank, fuel and bin against your thresholds</dd></dl><span class="sub">The model looks at trends across several readings, so one noisy sample does not trigger an alert.</span></div>'}
+
+function renderAlerts(){
+  var c=cloud,list=c.alerts,op=openAlerts(c).some(function(a){return a.sev==="crit"&&!dev.acked[a.id]});
+  return'<div class="row"><h2 style="font-size:20px">Alerts</h2><div class="simbtns"><button class="btn" type="button" data-act="ack"'+(op?"":" disabled")+'>Silence buzzer</button><button class="btn" type="button" data-act="clearLog"'+(list.length?"":" disabled")+'>Clear history</button></div></div>'+
+  (list.length?'<div class="alist">'+list.map(function(a){return'<div class="alert-item '+(a.sev==="crit"?"crit":a.sev==="info"?"info":"")+(a.open||a.sev==="info"?"":" closed")+'"><span class="stripe"></span><div><b>'+a.msg+'</b><div class="meta"><i class="swatch" style="background:'+RES[a.res].c+';display:inline-block;margin-right:6px"></i>'+RES[a.res].n+' · '+a.t+(a.cleared?" · cleared "+a.cleared:"")+'</div></div><span class="pill '+(a.sev==="crit"?"alert":a.sev==="info"?"":"watch")+'" style="align-self:start">'+(a.sev==="info"?"Action":a.open?(a.sev==="crit"?"Critical":"Warning"):"Resolved")+'</span></div>'}).join("")+'</div>'
+  :'<div class="empty">No alerts yet. Use the test bench on the Device tab to trigger a leak or a power surge.</div>')}
+
+function dayRow(label,o,today){var cost=o.elec*TARIFF+o.fuel*FUEL_PRICE;return{label:label+(today?" (so far)":""),water:o.water,elec:o.elec,fuel:o.fuel,waste:o.waste,co2:o.elec*CO2,cost:cost,today:today}}
+function reportRows(){var c=cloud,rows=hist.map(function(x){return dayRow(x.label,x,false)});
+  rows.push(dayRow("Today",{water:sum(c.hourly.water),elec:sum(c.hourly.elec),fuel:sum(c.hourly.fuel),waste:sum(c.hourly.waste)},true));return rows}
+function renderReports(){
+  var rows=reportRows(),cols=[["water","Water (L)",f0,"var(--c-water)"],["elec","Electricity (kWh)",f1,"var(--c-elec)"],["fuel","Fuel (L)",f2,"var(--c-fuel)"],["waste","Bin fill (%)",f1,"var(--c-waste)"],["co2","CO₂ (kg)",f1,"var(--muted)"],["cost","Cost (₹)",f0,"var(--accent)"]];
+  var mx={};cols.forEach(function(k){mx[k[0]]=Math.max.apply(0,rows.map(function(r){return r[k[0]]}))||1});
+  var full=rows.slice(0,6);var tot={water:sum(full.map(function(r){return r.water})),elec:sum(full.map(function(r){return r.elec})),cost:sum(full.map(function(r){return r.cost})),co2:sum(full.map(function(r){return r.co2}))};
+  return'<div class="row"><div><h2 style="font-size:20px">Weekly report</h2><span class="sub">Last 6 full days and today so far. Cost and CO₂ are estimates (₹'+TARIFF+'/kWh, ₹'+FUEL_PRICE+'/L fuel, '+CO2+' kg CO₂ per kWh).</span></div><button class="btn primary" type="button" data-act="copyReport">Copy summary</button></div>'+
+  '<div class="panel"><div class="tablewrap"><table><thead><tr><th>Day</th>'+cols.map(function(k){return'<th>'+k[1]+'</th>'}).join("")+'</tr></thead><tbody>'+
+  rows.map(function(r){return'<tr class="'+(r.today?"today":"")+'"><td>'+r.label+'</td>'+cols.map(function(k){var v=r[k[0]];return'<td class="mono"><span class="cell">'+k[2](v)+'<i style="width:'+Math.max(4,v/mx[k[0]]*80)+'px;background:'+k[3]+'"></i></span></td>'}).join("")+'</tr>'}).join("")+'</tbody></table></div></div>'+
+  '<div class="runway"><div class="panel"><span class="label">6-day water</span><div class="big" style="font-size:26px">'+f0(tot.water)+'<small>L</small></div></div><div class="panel"><span class="label">6-day electricity</span><div class="big" style="font-size:26px">'+f1(tot.elec)+'<small>kWh</small></div></div><div class="panel"><span class="label">6-day estimated cost</span><div class="big" style="font-size:26px">₹'+f0(tot.cost)+'</div></div><div class="panel"><span class="label">6-day estimated CO₂</span><div class="big" style="font-size:26px">'+f0(tot.co2)+'<small>kg</small></div></div></div>'}
+
+function renderDevice(){
+  return'<div class="cols"><div class="panel"><h3>On the device</h3><div class="lcd" id="lcd" aria-label="LCD display"></div>'+
+   '<div class="leds"><span class="led g" id="ledG"><i></i>Green</span><span class="led a" id="ledA"><i></i>Amber</span><span class="led r" id="ledR"><i></i>Red</span><span class="led buzz" id="ledB"><i></i>Buzzer</span></div>'+
+   '<div class="ctl"><label class="row"><b>Phone alerts</b><input type="checkbox" id="notifOn" data-act="notif"'+(notif?" checked":"")+'></label><span class="sub" id="notifState"></span><div class="simbtns"><button class="btn" type="button" data-act="notifTest">Send test alert</button></div></div>'+
+   '<label class="row sub"><span>Play a beep when the buzzer sounds</span><input type="checkbox" id="soundOn" data-act="sound"'+(sound?" checked":"")+'></label>'+
+   '<div class="ctl"><div class="row"><b>Wi-Fi</b><button class="btn" type="button" data-act="wifi" id="wifiBtn"></button></div><span class="sub">Turn Wi-Fi off to see what happens in a Wi-Fi outage. The LCD, LEDs, buzzer and relays keep working, and the app resumes when Wi-Fi returns.</span></div></div>'+
+   '<div class="panel"><h3>Test bench</h3><span class="sub">These buttons make the simulated sensors misbehave so you can watch alerts, the buzzer and the relays react. They do not exist on the real device.</span><div class="simbtns">'+
+   '<button class="btn" type="button" data-act="simLeak">Simulate leak</button><button class="btn" type="button" data-act="simSpike">Simulate power surge</button><button class="btn" type="button" data-act="simBin">Fill bin to 90%</button><button class="btn" type="button" data-act="emptyBin">Empty bin</button><button class="btn" type="button" data-act="refuel">Refill fuel</button><button class="btn" type="button" data-act="drain">Drain tank to 15%</button></div></div></div>'+
+   '<div class="panel"><h3>Alert thresholds</h3><div class="form">'+
+   fld("waterLow","Water low (%)")+fld("ampsMax","Current limit (A)")+fld("fuelLow","Fuel low (% of tank)")+fld("wasteHigh","Bin full (%)")+fld("tempHigh","High temperature (°C)")+'</div></div>'}
+function fld(k,l){return'<label for="th-'+k+'">'+l+'<input id="th-'+k+'" data-th="'+k+'" type="number" step="1" value="'+th[k]+'"></label>'}
+
+/* ---------- device-side widgets ---------- */
+function lcdText(){var d=dev,P=function(s){s=String(s);return(s+"                ").slice(0,16)};
+  var lvl=d.waterL/TANK*100,screens=[
+    [P("WATER "+f0(lvl)+"% "+f0(d.waterL)+"L"),P("Pump "+(d.pump?"ON ":"OFF")+" Vlv "+(d.valve?"OPN":"CLS"))],
+    [P("ELEC "+f1(d.amps)+"A"),P(f2(d.kw)+"kW "+f1(sum(d.hourly.elec))+"kWh")],
+    [P("FUEL "+f1(d.fuelL)+"L "+f0(d.fuelL/FUEL_CAP*100)+"%"),P("WASTE "+f0(d.waste)+"% full")],
+    [P("T "+f1(d.temp)+"C H "+f0(d.hum)+"%"),P("WiFi "+(d.wifi?"OK ":"-- ")+(openAlerts(d).length?"ALERT":"OK"))]];
+  return screens[lcdScreen%4].join("\n")}
+function buzzActive(){return openAlerts(dev).some(function(a){return a.sev==="crit"&&!dev.acked[a.id]})}
+function notifOK(){try{return typeof Notification!=="undefined"&&Notification.permission==="granted"}catch(e){return false}}
+function notify(a){if(!notif)return;
+  try{if(notifOK())new Notification("Eco Sense · "+RES[a.res].n,{body:a.msg})}catch(e){}
+  try{if(navigator.vibrate)navigator.vibrate(a.sev==="crit"?[300,100,300]:200)}catch(e){}}
+function buzzer(){if(sound&&buzzActive()){try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.frequency.value=880;g.gain.value=.05;o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+.15)}catch(e){}}}
+function updateDevice(){
+  var l=$("#lcd");if(!l)return;l.textContent=lcdText();
+  var oa=openAlerts(dev),cr=oa.some(function(a){return a.sev==="crit"}),wa=oa.length>0&&!cr;
+  $("#ledG").classList.toggle("on",oa.length===0);$("#ledA").classList.toggle("on",wa);$("#ledR").classList.toggle("on",cr);$("#ledB").classList.toggle("on",buzzActive());
+  var ns=$("#notifState");if(ns)ns.textContent=!notif?"Off. Critical alerts still show as a banner at the top of the app.":notifOK()?"On. This device shows a system notification and vibrates for new alerts while the app is open.":"On, but this view does not allow system notifications. Alerts show as a banner and in the tab title"+(navigator.vibrate?" and the phone vibrates.":".");
+  $("#wifiBtn").textContent=dev.wifi?"Online · turn off":"Offline · turn on"}
+
+
+/* ---------- project tabs (from the project deck) ---------- */
+var solarW=300, staticBuilt=false;
+function solarGen(h){return(h>=6&&h<18)?solarW/1000*0.75*Math.sin(Math.PI*(h+0.5-6)/12):0}
+function solarStats(){var c=cloud,h=c.h,gen=0,used=0,dem=0;
+  for(var i=0;i<=h;i++){var f=i===h?1:1,g=solarGen(i)*(i===h?new Date().getMinutes()/60:1),d=c.hourly.elec[i]||0;gen+=g;dem+=d;used+=Math.min(g,d)}
+  var full=0;for(i=0;i<24;i++)full+=solarGen(i);
+  return{gen:gen,used:used,dem:dem,full:full}}
+function renderSolar(){
+  return'<div><div class="label">Optional add-on</div><h2 style="font-size:20px">Solar panel</h2><span class="sub">The device runs fine without a panel. Add one and this page shows how much of today\'s electricity it covers. Output here is simulated from the time of day.</span></div>'+
+  '<div class="panel"><div class="range"><label for="solarW"><b>Panel size</b></label><input type="range" id="solarW" min="0" max="1000" step="50" value="'+solarW+'"><span class="mono" id="solarWv"></span></div><div id="solarOut"></div></div>'+
+  '<div class="panel"><h3>Why add solar</h3><ul class="plain"><li>Daytime loads such as the water pump run on free power.</li><li>Every kWh from the panel is a kWh you do not buy and does not add to your carbon footprint.</li><li>The same sensors and app work with or without it.</li></ul></div>'}
+function updateSolar(){var o=$("#solarOut");if(!o)return;$("#solarWv").textContent=solarW+" W";
+  var st=solarStats(),cover=st.dem?st.used/st.dem*100:0;
+  o.innerHTML='<div class="runway"><div class="panel"><span class="label">Solar so far today</span><div class="big" style="font-size:28px">'+f2(st.gen)+'<small>kWh</small></div><span class="sub">Full day about '+f2(st.full)+' kWh</span></div>'+
+   '<div class="panel"><span class="label">Share of your use covered</span><div class="big" style="font-size:28px">'+f0(cover)+'<small>%</small></div><span class="sub">'+f2(st.used)+' of '+f2(st.dem)+' kWh used so far</span></div>'+
+   '<div class="panel"><span class="label">CO₂ avoided</span><div class="big" style="font-size:28px">'+f2(st.used*CO2)+'<small>kg</small></div><span class="sub">At '+CO2+' kg per kWh</span></div>'+
+   '<div class="panel"><span class="label">Saved today</span><div class="big" style="font-size:28px">₹'+f1(st.used*TARIFF)+'</div><span class="sub">At ₹'+TARIFF+' per kWh</span></div></div>'+
+   '<div class="chartbox" id="solarChart"></div><div class="legend"><span><i class="sw" style="background:var(--c-elec);height:10px;opacity:.9"></i>Your use (forecast after now)</span><span><i class="sw" style="background:var(--ok)"></i>Solar output</span></div>';
+  drawSolar($("#solarChart"))}
+function drawSolar(host){
+  var c=cloud,h=c.h,w=host.clientWidth||600,Ht=220,m={l:44,r:8,t:12,b:26},r=ratioFor(c,"elec"),vals=[],gen=[],i;
+  for(i=0;i<24;i++){vals.push(i<=h?c.hourly.elec[i]:PE[i]*r);gen.push(solarGen(i))}
+  var mx=Math.max.apply(0,vals.concat(gen))*1.15;mx=Math.max(.5,Math.ceil(mx*4)/4);
+  var iw=w-m.l-m.r,ih=Ht-m.t-m.b,bw=iw/24,y=function(v){return m.t+ih-v/mx*ih},g="";
+  [0,.5,1].forEach(function(t){var v=mx*t;g+='<line x1="'+m.l+'" x2="'+(w-m.r)+'" y1="'+y(v)+'" y2="'+y(v)+'" style="stroke:var(--line)"/><text x="'+(m.l-6)+'" y="'+(y(v)+4)+'" text-anchor="end" style="fill:var(--muted);font:11px var(--font-data)">'+f2(v)+'</text>'});
+  var pts=[];
+  for(i=0;i<24;i++){var x=m.l+i*bw+bw*.16,bwid=bw*.68,F=i>h;
+    g+='<rect x="'+x+'" y="'+y(vals[i])+'" width="'+bwid+'" height="'+Math.max(0,ih+m.t-y(vals[i]))+'" rx="2" style="fill:var(--c-elec);opacity:'+(F?.3:.9)+'"/>';
+    pts.push([m.l+i*bw+bw/2,y(gen[i])]);
+    if(i%3===0)g+='<text x="'+(x+bwid/2)+'" y="'+(Ht-8)+'" text-anchor="middle" style="fill:var(--muted);font:11px var(--font-data)">'+("0"+i).slice(-2)+'</text>'}
+  if(solarW>0)g+='<path d="'+pts.map(function(p,k){return(k?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1)}).join("")+'" style="fill:none;stroke:var(--ok);stroke-width:2.5"/>';
+  host.innerHTML='<svg viewBox="0 0 '+w+' '+Ht+'" width="'+w+'" height="'+Ht+'" role="img" aria-label="Hourly electricity use and solar output today in kWh">'+g+'</svg>'}
+
+var QA=[["What does Eco Sense do?", "It watches your water, electricity, fuel and waste in one place. It shows live readings, warns you when something looks wrong, predicts how much you will use, and suggests ways to waste less."], ["How do I read the Dashboard?", "Each resource has a card with its current value and a small trend line. The tag in the corner tells you the state: Normal means all is well, Watch means keep an eye on it, and Alert means act now. The line at the top sums up all four resources."], ["What do the Predictions show?", "The Predictions tab shows today's use hour by hour. Solid bars are what has been used so far. Faded bars are the forecast for the rest of the day, based on your usual pattern. It also tells you how long the water tank, fuel and waste bin will last."], ["What happens when there is an alert?", "A red banner appears at the top of the app, the buzzer and red light on the device switch on, and the alert is listed in the Alerts tab. Tap Silence buzzer to stop the sound. The alert clears by itself once the problem is fixed."], ["How does it find a leak or abnormal use?", "It compares live readings with your normal pattern. If water flows far faster than usual for a couple of readings in a row, it reports a possible leak. If electricity use jumps well above the recent average, it warns you of unusual power use. Looking at several readings avoids false alarms."], ["How do I switch the pump or valve on and off?", "On the Dashboard, open Controls. Set the pump to Auto to let it fill the tank by itself when the level is low, or to Manual to turn it on and off yourself. Use the valve button to open or close the main water valve. You can also let the app close the valve automatically when it detects a leak."], ["Can I change when I get alerts?", "Yes. Open the Device tab and go to Alert thresholds. Set your own limits for low water, current, low fuel, full waste bin and high temperature. Your changes are saved on your device."], ["What are the conservation tips?", "The Dashboard lists tips made from today's readings, such as fixing leaks when water use is above average, switching off standby loads at night, or planning a fuel refill. Some tips show how much you could save."], ["What if the Wi-Fi stops working?", "The device keeps working on its own. Its screen, lights, buzzer and relays still react, and it stores readings until Wi-Fi returns. The app shows Offline, and the controls pause until it reconnects. You can try this with the Wi-Fi button on the Device tab."], ["How do I get alerts on my phone?", "Go to the Device tab and turn on Phone alerts. Allow notifications when your browser asks. Use Send test alert to check it works. Critical alerts also always show as a banner at the top of the app. Reports show your daily use and cost, and you can copy a summary from the Reports tab."]];
+function li(a){return a.map(function(x){return"<li>"+x+"</li>"}).join("")}
+function renderAbout(){
+  return'<div><div class="label">Help and feedback</div><h2 style="font-size:20px">Using Eco Sense</h2><span class="sub">Monitor smarter. Waste less. Live greener. One smart platform for water, electricity, fuel and waste.</span></div>'+
+  '<div class="two"><div class="panel"><h3>Contact us</h3><span class="sub">Questions, problems or ideas? Write to us.</span><div class="row"><b class="mono" id="mailAddr">ecosense.resource@gmail.com</b><button class="btn" type="button" data-act="copyMail">Copy email</button></div><a href="mailto:ecosense.resource@gmail.com" class="sub">Open in my email app</a></div>'+
+  '<form class="panel" id="fbForm" novalidate><h3>Send feedback</h3>'+
+  '<label class="fl" for="fbName">Your name (optional)<input id="fbName" type="text" autocomplete="name"></label>'+
+  '<div class="fl" role="group" aria-labelledby="fbRateL"><span id="fbRateL">How would you rate Eco Sense?</span><div class="stars" id="fbRate">'+[1,2,3,4,5].map(function(n){return'<button type="button" data-rate="'+n+'" aria-pressed="false" aria-label="'+n+(n===1?' star':' stars')+'">\u2605</button>'}).join("")+'</div></div>'+
+  '<label class="fl" for="fbType">About<select id="fbType"><option>General feedback</option><option>Something is not working</option><option>An idea for a new feature</option><option>Alerts and readings</option></select></label>'+
+  '<label class="fl" for="fbMsg">Your message<textarea id="fbMsg" rows="4" required></textarea></label>'+
+  '<div class="sub" id="fbErr" role="alert" style="color:var(--alert)"></div>'+
+  '<button class="btn primary" type="submit">Send feedback</button><span class="sub">This opens your email app with the message ready to send to us. If nothing opens, use Copy message.</span><button class="btn" type="button" data-act="copyFb">Copy message</button></form></div>'+
+  '<div class="panel"><h3>Questions and answers</h3><div>'+QA.map(function(q){return'<details class="qa"><summary>'+q[0]+'</summary><p>'+q[1]+'</p></details>'}).join("")+'</div></div>'}
+function fbText(){var r=fbRate?fbRate+" out of 5":"not rated",n=$("#fbName").value.trim();
+  return"Eco Sense feedback\nAbout: "+$("#fbType").value+"\nRating: "+r+(n?"\nName: "+n:"")+"\n\n"+$("#fbMsg").value.trim()}
+var fbRate=0;
+/* ---------- render ---------- */
+var TABS=[["dash","Dashboard"],["predict","Predictions"],["alerts","Alerts"],["reports","Reports"],["solar","Solar"],["device","Device"],["about","Help"]];
+function renderTabs(){var n=openAlerts(cloud).length;
+  $("#tabs").innerHTML=TABS.map(function(t){return'<button class="tab" role="tab" type="button" data-tab="'+t[0]+'" aria-selected="'+(tab===t[0])+'">'+t[1]+(t[0]==="alerts"&&n?'<span class="badge">'+n+'</span>':"")+'</button>'}).join("")}
+function renderBar(){var c=openAlerts(cloud).filter(function(a){return a.sev==="crit"&&!dismissed[a.id]}),n=openAlerts(cloud).length;
+  document.title=(n?"("+n+") ":"")+"Eco Sense";
+  $("#alertBar").innerHTML=c.length?'<div class="alertbar" role="alert"><b>'+RES[c[0].res].n+': '+c[0].msg+'</b><span class="simbtns"><button class="btn" type="button" data-tab="alerts">View</button><button class="btn" type="button" data-act="dismissBar" data-id="'+c[0].id+'">Dismiss</button></span></div>':""}
+function renderNet(){$("#net .dot").classList.toggle("off",!dev.wifi);$("#netTxt").textContent=dev.wifi?"Device online":"Device offline · Wi-Fi down"}
+var deviceBuilt=false;
+function render(full){
+  renderTabs();renderNet();renderBar();var v=$("#view");
+  if(tab==="dash")v.innerHTML=renderDash();
+  else if(tab==="predict"){v.innerHTML=renderPredict();drawForecast($("#chart"))}
+  else if(tab==="alerts")v.innerHTML=renderAlerts();
+  else if(tab==="reports")v.innerHTML=renderReports();
+  else if(tab==="device"){if(full||!deviceBuilt){v.innerHTML=renderDevice();deviceBuilt=true}updateDevice()}
+  else if(tab==="solar"||tab==="about"){if(full||!staticBuilt){v.innerHTML=tab==="solar"?renderSolar():renderAbout();staticBuilt=true}if(tab==="solar")updateSolar()}
+  if(tab!=="device")deviceBuilt=false;
+  if(tab!=="solar"&&tab!=="system"&&tab!=="about")staticBuilt=false;
+}
+var tt;function toast(m){var t=$("#toast");t.textContent=m;t.hidden=false;clearTimeout(tt);tt=setTimeout(function(){t.hidden=true},3200)}
+
+/* ---------- events ---------- */
+function copyTxt(t,ok){if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(function(){toast(ok)},function(){toast("Copy is blocked here. Select the text and copy it.")})}else toast("Copy is blocked here. Select the text and copy it.")}
+document.addEventListener("submit",function(e){if(e.target.id!=="fbForm")return;e.preventDefault();
+  if(!$("#fbMsg").value.trim()){$("#fbErr").textContent="Write a message first.";return}
+  $("#fbErr").textContent="";var u="mailto:ecosense.resource@gmail.com?subject="+encodeURIComponent("Eco Sense feedback")+"&body="+encodeURIComponent(fbText());
+  toast("Opening your email app. Press send there to finish.");try{window.location.href=u}catch(x){}});
+document.addEventListener("click",function(e){var rb=e.target.closest("[data-rate]");if(rb){fbRate=parseInt(rb.dataset.rate,10);document.querySelectorAll("[data-rate]").forEach(function(x){var on=parseInt(x.dataset.rate,10)<=fbRate;x.classList.toggle("on",on);x.setAttribute("aria-pressed",String(x===rb))});return}
+  var b=e.target.closest("[data-tab],[data-pred],[data-act]");if(!b)return;var d=dev;
+  if(b.dataset.tab){tab=b.dataset.tab;store("es-tab",tab);render(true);window.scrollTo(0,0);return}
+  if(b.dataset.pred){predRes=b.dataset.pred;render();return}
+  var a=b.dataset.act;
+  if(a==="pumpAuto")d.pumpAuto=true;
+  else if(a==="pumpManual")d.pumpAuto=false;
+  else if(a==="pumpToggle")d.pump=!d.pump;
+  else if(a==="valveToggle"){d.valve=!d.valve;if(d.valve){d.leakTicks=0;d.leakHeld=false}}
+  else if(a==="dismissBar"){dismissed[b.dataset.id]=true}
+  else if(a==="notifTest"){var fake={res:"water",sev:"crit",msg:"Test alert. Phone alerts are working."};if(!notif)toast("Turn on Phone alerts first.");else{notify(fake);toast("Test alert sent")}}
+  else if(a==="ack"){d.alerts.forEach(function(x){d.acked[x.id]=true})}
+  else if(a==="clearLog"){d.alerts=d.alerts.filter(function(x){return x.open});}
+  else if(a==="wifi"){d.wifi=!d.wifi;if(d.wifi){toast("Back online. "+d.queued+" queued readings synced.");d.queued=0;cloud=JSON.parse(JSON.stringify(d))}else toast("Wi-Fi is off. The device keeps running locally.")}
+  else if(a==="simLeak"){d.valve=true;d.leakLeft=14;toast("Leak started. Watch the alerts.")}
+  else if(a==="simSpike"){d.spikeLeft=8;toast("Power surge started.")}
+  else if(a==="simBin"){d.waste=90}
+  else if(a==="emptyBin"){d.waste=3}
+  else if(a==="refuel"){d.fuelL=FUEL_CAP*0.9}
+  else if(a==="drain"){d.waterL=TANK*0.15}
+  else if(a==="copyMail"){copyTxt("ecosense.resource@gmail.com","Email address copied");return}
+  else if(a==="copyFb"){if(!$("#fbMsg").value.trim()){$("#fbErr").textContent="Write a message first.";return}copyTxt("To: ecosense.resource@gmail.com\n"+fbText(),"Message copied. Paste it into an email to us.");return}
+  else if(a==="copyReport"){var r=reportRows(),t=r[r.length-1],txt="Eco Sense report\nToday so far: "+f0(t.water)+" L water, "+f1(t.elec)+" kWh electricity, "+f2(t.fuel)+" L fuel, bin up "+f1(t.waste)+"%. Est. CO2 "+f1(t.co2)+" kg, est. cost Rs "+f0(t.cost)+".\n7-day average: "+f0(histAvg("water"))+" L water, "+f1(histAvg("elec"))+" kWh electricity.";
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(function(){toast("Summary copied")},function(){toast("Copy is blocked here. Select the table instead.")})}else toast("Copy is blocked here. Select the table instead.");return}
+  if(d.wifi)cloud=JSON.parse(JSON.stringify(d));
+  render();
+});
+document.addEventListener("input",function(e){if(e.target.id==="solarW"){solarW=parseInt(e.target.value,10)||0;updateSolar()}});
+document.addEventListener("change",function(e){var t=e.target;
+  if(t.dataset.act==="autoValve"){dev.autoValve=t.checked;if(dev.wifi)cloud=JSON.parse(JSON.stringify(dev))}
+  else if(t.dataset.act==="notif"){notif=t.checked;store("es-notif",notif?"1":"0");
+    if(notif){try{if(typeof Notification!=="undefined"&&Notification.permission==="default"){var pr=Notification.requestPermission();if(pr&&pr.then)pr.then(updateDevice)}}catch(e){}}updateDevice()}
+  else if(t.dataset.act==="sound"){sound=t.checked;if(sound)buzzer()}
+  else if(t.dataset.th){var v=parseFloat(t.value);if(!isNaN(v)){th[t.dataset.th]=v;store("es-th",JSON.stringify(th));toast("Threshold saved")}}
+});
+$("#themeBtn").addEventListener("click",function(){var r=document.documentElement,cur=r.getAttribute("data-theme");
+  var dark=cur?cur==="dark":window.matchMedia("(prefers-color-scheme: dark)").matches;r.setAttribute("data-theme",dark?"light":"dark")});
+window.addEventListener("resize",function(){if(tab==="predict"&&$("#chart"))drawForecast($("#chart"));if(tab==="solar"&&$("#solarChart"))drawSolar($("#solarChart"))});
+
+/* ---------- PIN gate ---------- */
+var PIN="1234"; /* CHANGE THIS before you share the link */
+function lockMsg(t,m){$("#lockTitle").textContent=t;$("#lockMsg").textContent=m;$("#lock").hidden=false}
+(function(){
+  var ok=false;try{ok=localStorage.getItem("es-unlocked")==="1"}catch(e){}
+  if(ok){$("#lock").hidden=true;$("#ownerChip").hidden=false;return}
+  $("#lockTitle").textContent="Enter PIN";
+  $("#lockMsg").innerHTML='This dashboard is private. Enter your PIN to open it.<form id="pinForm" style="display:flex;gap:8px;margin-top:12px"><input id="pinIn" type="password" inputmode="numeric" autocomplete="off" aria-label="PIN" style="flex:1;min-width:0;border:1px solid var(--line);background:var(--surface2);color:var(--ink);border-radius:8px;padding:9px 12px"><button class="btn primary" type="submit">Open</button></form><div id="pinErr" class="sub" style="margin-top:8px;color:var(--alert)"></div>';
+  $("#pinForm").addEventListener("submit",function(e){e.preventDefault();
+    if($("#pinIn").value===PIN){try{localStorage.setItem("es-unlocked","1")}catch(x){}$("#lock").hidden=true;$("#ownerChip").hidden=false}
+    else $("#pinErr").textContent="Wrong PIN. Try again."})
+})();
+
+/* ---------- boot ---------- */
+var snap=JSON.stringify([dev.hourly,dev.waterL,dev.fuelL,dev.waste]);
+for(var i=0;i<30;i++)tick();           // warm up the live charts
+var sn=JSON.parse(snap);dev.hourly=sn[0];dev.waterL=sn[1];dev.fuelL=sn[2];dev.waste=sn[3];dev.pump=false;dev.amps=dev.kw*1000/VOLT;
+dev.alerts=[];dev.active={};dev.nextId=1;cloud=JSON.parse(JSON.stringify(dev));
+render(true);lastNotified=dev.nextId-1;
+setInterval(tick,1500);
+setInterval(function(){lcdScreen++;updateDevice()},3000);
+})();
+</script>
+<script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})})}</script>
+</body></html>
